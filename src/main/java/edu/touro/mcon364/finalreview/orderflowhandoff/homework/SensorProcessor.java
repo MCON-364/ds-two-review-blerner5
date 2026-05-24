@@ -3,6 +3,11 @@ package edu.touro.mcon364.finalreview.orderflowhandoff.homework;
 import edu.touro.mcon364.finalreview.model.SensorReading;
 
 import java.util.DoubleSummaryStatistics;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Homework 2 — Sensor reading processor.
@@ -43,13 +48,31 @@ import java.util.DoubleSummaryStatistics;
  */
 public class SensorProcessor {
 
+    // Queue of readings waiting to be processed
+    private final BlockingQueue<SensorReading> queue = new LinkedBlockingQueue<>();
+
+    // Whether workers should continue running
+    private final AtomicBoolean running = new AtomicBoolean(false);
+
+    // Worker threads
+    private final List<Thread> workers = new ArrayList<>();
+
+    // Stats for processed readings
+    private final DoubleSummaryStatistics stats = new DoubleSummaryStatistics();
+    private int totalProcessed = 0;
+
+    // Lock for stats + totalProcessed
+    private final Object statsLock = new Object();
+
     /**
      * Accept one sensor reading for processing.
      *
      * @param reading the reading to process later
      */
     public void submit(SensorReading reading) {
-        // TODO: decide where submitted readings should be stored
+        if (running.get()) {
+            queue.add(reading);
+        }
     }
 
     /**
@@ -59,19 +82,55 @@ public class SensorProcessor {
      * @throws IllegalArgumentException if workerCount is not positive
      */
     public void start(int workerCount) {
-        // TODO: validate workerCount
-        // TODO: start the requested number of workers
+        if (workerCount <= 0) {
+            throw new IllegalArgumentException("workerCount must be positive");
+        }
+        if (running.get()) {
+            return; // already started
+        }
+
+        running.set(true);
+
+        for (int i = 0; i < workerCount; i++) {
+            Thread t = new Thread(this::workerLoop);
+            workers.add(t);
+            t.start();
+        }
     }
 
     /**
      * Logic run by each worker.
      *
-     * This method is private because callers should not run worker logic directly.
      * The worker should repeatedly look for work, process it when available, and
      * eventually exit when the processor is stopping and no work remains.
      */
     private void workerLoop() {
-        // TODO: implement the worker behavior
+        try {
+            while (true) {
+
+                // If stopping AND no work left → exit
+                if (!running.get() && queue.isEmpty()) {
+                    return;
+                }
+
+                // Try to get work
+                SensorReading reading = queue.poll();
+
+                if (reading == null) {
+                    // No work right now — small pause, then re-check
+                    Thread.sleep(10);
+                    continue;
+                }
+
+                // Process reading
+                synchronized (statsLock) {
+                    stats.accept(reading.value());
+                    totalProcessed++;
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     /**
@@ -80,16 +139,20 @@ public class SensorProcessor {
      * @throws InterruptedException if the calling thread is interrupted while waiting
      */
     public void stop() throws InterruptedException {
-        // TODO: signal that work should stop
-        // TODO: wait for all workers to finish
+        running.set(false);
+
+        for (Thread t : workers) {
+            t.join();
+        }
     }
 
     /**
      * Return the number of readings processed so far.
      */
     public int getTotalProcessed() {
-        // TODO: return the processed count safely
-        return 0;
+        synchronized (statsLock) {
+            return totalProcessed;
+        }
     }
 
     /**
@@ -99,7 +162,10 @@ public class SensorProcessor {
      * DoubleSummaryStatistics object.
      */
     public DoubleSummaryStatistics getStats() {
-        // TODO: calculate or return the current statistics safely
-        return new DoubleSummaryStatistics();
+        synchronized (statsLock) {
+            DoubleSummaryStatistics copy = new DoubleSummaryStatistics();
+            copy.combine(stats);
+            return copy;
+        }
     }
 }

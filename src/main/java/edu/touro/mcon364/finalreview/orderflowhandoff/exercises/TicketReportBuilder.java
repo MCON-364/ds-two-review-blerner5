@@ -2,6 +2,7 @@ package edu.touro.mcon364.finalreview.orderflowhandoff.exercises;
 
 import edu.touro.mcon364.finalreview.model.SupportTicket;
 import edu.touro.mcon364.finalreview.model.TicketReport;
+import edu.touro.mcon364.finalreview.model.Priority;
 
 import java.util.List;
 import java.util.Map;
@@ -70,7 +71,7 @@ public class TicketReportBuilder {
      */
     public TicketReportBuilder(List<SupportTicket> tickets) {
         // TODO: validate and store the tickets this object will analyze
-        this.tickets = List.of();
+        this.tickets = tickets == null ? List.of() : List.copyOf(tickets);
     }
 
     /**
@@ -78,7 +79,9 @@ public class TicketReportBuilder {
      */
     public long getResolvedCount() {
         // TODO: calculate from tickets
-        return 0;
+        return tickets.stream()
+                .filter(SupportTicket::resolved)
+                .count();
     }
 
     /**
@@ -88,23 +91,38 @@ public class TicketReportBuilder {
      */
     public double getAverageResolutionMinutes() {
         // TODO: calculate from tickets
-        return 0.0;
+        return tickets.stream()
+                .filter(SupportTicket::resolved)
+                .mapToInt(SupportTicket::minutesToResolve)
+                .average()
+                .orElse(0.0);
     }
-
     /**
      * Return how many tickets belong to each category.
      */
     public Map<String, Long> getCountByCategory() {
         // TODO: calculate from tickets
-        return Map.of();
+        return tickets.stream()
+                .collect(java.util.stream.Collectors.collectingAndThen(
+                        java.util.stream.Collectors.groupingBy(
+                                SupportTicket::category,
+                                java.util.stream.Collectors.counting()
+                        ),
+                        Map::copyOf
+                ));
     }
-
     /**
      * Return unresolved tickets that should receive the most urgent attention.
      */
     public List<SupportTicket> getHighPriorityUnresolved() {
         // TODO: calculate from tickets
-        return List.of();
+        return tickets.stream()
+                .filter(t -> !t.resolved())
+                .filter(t -> t.priority() == Priority.HIGH)
+                .collect(java.util.stream.Collectors.collectingAndThen(
+                        java.util.stream.Collectors.toList(),
+                        List::copyOf
+                ));
     }
 
     /**
