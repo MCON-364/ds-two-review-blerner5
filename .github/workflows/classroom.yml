@@ -88,6 +88,67 @@ jobs:
           timeout: 10
           max-score: 20
 
+      # ── TreesAndThreads (100 pts) ───────────────────────────────────────────
+      - name: EmployeeRosterTest
+        id: employee-roster-test
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: "EmployeeRosterTest"
+          setup-command: ""
+          command: "mvn -B -ntp test -Dtest=edu.touro.mcon364.finalreview.treesandthreads.exercises.EmployeeRosterTest"
+          timeout: 20
+          max-score: 17
+
+      - name: WordFrequencyCounterTest
+        id: word-frequency-counter-test
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: "WordFrequencyCounterTest"
+          setup-command: ""
+          command: "mvn -B -ntp test -Dtest=edu.touro.mcon364.finalreview.treesandthreads.exercises.WordFrequencyCounterTest"
+          timeout: 20
+          max-score: 17
+
+      - name: ConcurrentLeaderboardTest
+        id: concurrent-leaderboard-test
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: "ConcurrentLeaderboardTest"
+          setup-command: ""
+          command: "mvn -B -ntp test -Dtest=edu.touro.mcon364.finalreview.treesandthreads.exercises.ConcurrentLeaderboardTest"
+          timeout: 20
+          max-score: 16
+
+      - name: ConcurrentEventLogTest
+        id: concurrent-event-log-test
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: "ConcurrentEventLogTest"
+          setup-command: ""
+          command: "mvn -B -ntp test -Dtest=edu.touro.mcon364.finalreview.treesandthreads.homework.ConcurrentEventLogTest"
+          timeout: 20
+          max-score: 17
+
+      - name: LibraryCatalogTest
+        id: library-catalog-test
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: "LibraryCatalogTest"
+          setup-command: ""
+          command: "mvn -B -ntp test -Dtest=edu.touro.mcon364.finalreview.treesandthreads.homework.LibraryCatalogTest"
+          timeout: 20
+          max-score: 16
+
+      - name: StudentGradeBookTest
+        id: student-grade-book-test
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: "StudentGradeBookTest"
+          setup-command: ""
+          command: "mvn -B -ntp test -Dtest=edu.touro.mcon364.finalreview.treesandthreads.homework.StudentGradeBookTest"
+          timeout: 20
+          max-score: 17
+
       # ── Reporter ─────────────────────────────────────────────────────────────
       - name: Autograding Reporter
         if: always()
@@ -99,7 +160,11 @@ jobs:
           PRINT-QUEUE_RESULTS: "${{ steps.print-queue.outputs.result }}"
           SENSOR-PROCESSOR_RESULTS: "${{ steps.sensor-processor.outputs.result }}"
           SUBMISSION-REPORT-BUILDER_RESULTS: "${{ steps.submission-report-builder.outputs.result }}"
+          EMPLOYEE-ROSTER-TEST_RESULTS: "${{ steps.employee-roster-test.outputs.result }}"
+          WORD-FREQUENCY-COUNTER-TEST_RESULTS: "${{ steps.word-frequency-counter-test.outputs.result }}"
+          CONCURRENT-LEADERBOARD-TEST_RESULTS: "${{ steps.concurrent-leaderboard-test.outputs.result }}"
+          CONCURRENT-EVENT-LOG-TEST_RESULTS: "${{ steps.concurrent-event-log-test.outputs.result }}"
+          LIBRARY-CATALOG-TEST_RESULTS: "${{ steps.library-catalog-test.outputs.result }}"
+          STUDENT-GRADE-BOOK-TEST_RESULTS: "${{ steps.student-grade-book-test.outputs.result }}"
         with:
           runners: action-history,log-processor,ticket-report-builder,print-queue,sensor-processor,submission-report-builder
-
-
