@@ -42,13 +42,17 @@ public class ConcurrentLeaderboard {
     private final ConcurrentSkipListSet<ScoreEntry> leaderboard = new ConcurrentSkipListSet<>();
     private final AtomicInteger totalSubmissions = new AtomicInteger(0);
 
+
+
     /**
      * Adds a score entry to the leaderboard thread-safely.
      *
      * @param entry the score entry to add
      */
     public void submitScore(ScoreEntry entry) {
-       //TODO
+        //TODO
+        leaderboard.add(entry);
+        totalSubmissions.incrementAndGet();
     }
 
     /**
@@ -59,15 +63,15 @@ public class ConcurrentLeaderboard {
      */
     public List<ScoreEntry> getTopN(int n) {
         // TODO
-        return List.of();
+        List topFive = leaderboard.stream().sorted().limit(n).collect(Collectors.toUnmodifiableList());
+        return topFive;
     }
-
     /**
      * Returns how many times submitScore has been called since creation.
      */
     public int getTotalSubmissions() {
         // TODO
-        return 0;
+        return totalSubmissions.get();
     }
 
     /**
@@ -79,8 +83,24 @@ public class ConcurrentLeaderboard {
      * @param players    list of player names
      * @param scoresEach number of random scores each player submits
      */
-    public void runSimulation(List<String> players, int scoresEach)
-            throws InterruptedException {
+    public void runSimulation(List<String> players, int scoresEach) {
+        ExecutorService pool = Executors.newFixedThreadPool(players.size());
+        for(String player: players) {
+            pool.submit(() -> {
+                Random rand = new Random();
+                for(int i=0; i<scoresEach; i++) {
+                    int score = rand.nextInt(1000);
+                    submitScore(new ScoreEntry(player, score, System.nanoTime()));
+                }
+            });
+        }
+        pool.shutdown();
+        try {
+            pool.awaitTermination(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
 
     }
 }

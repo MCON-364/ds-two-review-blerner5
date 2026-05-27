@@ -44,7 +44,10 @@ public class EmployeeRoster {
 
     public EmployeeRoster(List<Employee> employees) {
         // TODO: validate non-null, store a defensive copy
-        this.employees = List.of();
+        if(employees == null) {
+            throw new IllegalArgumentException("Invalid data");
+        }
+        this.employees = new ArrayList<>(employees);
     }
 
     /**
@@ -54,7 +57,7 @@ public class EmployeeRoster {
      */
     public TreeMap<String, TreeSet<Employee>> buildRoster() {
         // TODO
-        return new TreeMap<>();
+        return employees.stream().collect(Collectors.groupingBy(Employee::department, TreeMap::new, Collectors.toCollection(TreeSet::new)));
     }
 
     /**
@@ -64,7 +67,7 @@ public class EmployeeRoster {
      */
     public Map<String, Employee> getTopEarnerPerDepartment() {
         // TODO
-        return Map.of();
+        return employees.stream().collect(Collectors.groupingBy(Employee::department, TreeMap::new, Collectors.collectingAndThen(Collectors.maxBy(Comparator.comparingDouble(Employee::salary)), Optional::orElseThrow)));
     }
 
     /**
@@ -75,7 +78,7 @@ public class EmployeeRoster {
      */
     public List<Employee> getAllEmployeesSorted() {
         // TODO
-        return List.of();
+        return employees.stream().sorted(Comparator.comparing(Employee::name)).toList();
     }
 
     /**
@@ -88,7 +91,7 @@ public class EmployeeRoster {
      */
     public NavigableMap<String, TreeSet<Employee>> getDepartmentsInRange(String from, String to) {
         // TODO
-        return new TreeMap<>();
+        return buildRoster().subMap(from, true, to, true);
     }
 }
 

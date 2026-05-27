@@ -1,6 +1,7 @@
 package edu.touro.mcon364.finalreview.treesandthreads.exercises;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.*;
 
 /**
@@ -44,7 +45,10 @@ public class WordFrequencyCounter {
     public WordFrequencyCounter(List<String> words) {
         // TODO: validate that words is not null
         // TODO: store a defensive copy so outside code cannot mutate this object
-        this.words = List.of();
+        if(words == null){
+            throw new IllegalArgumentException("Invalid data");
+        }
+        this.words = new ArrayList<>(words);
     }
 
     /**
@@ -54,7 +58,7 @@ public class WordFrequencyCounter {
      */
     public TreeMap<String, Long> buildFrequencyMap() {
         // TODO
-        return new TreeMap<>();
+        return words.stream().collect(Collectors.groupingBy(Function.identity(), TreeMap::new, Collectors.counting() ));
     }
 
     /**
@@ -65,7 +69,7 @@ public class WordFrequencyCounter {
      */
     public List<String> getTopN(int n) {
         // TODO
-        return List.of();
+        return buildFrequencyMap().entrySet().stream().sorted(Map.Entry.<String, Long>comparingByValue().reversed()).limit(n).map(Map.Entry::getKey).collect(Collectors.toList());
     }
 
     /**
@@ -77,7 +81,7 @@ public class WordFrequencyCounter {
      */
     public List<String> getWordsStartingWith(char prefix) {
         // TODO
-        return List.of();
+        return buildFrequencyMap().keySet().stream().filter(word->word.charAt(0) == prefix).collect(Collectors.toList());
     }
 
     /**
@@ -90,6 +94,6 @@ public class WordFrequencyCounter {
      */
     public Optional<String> getMostFrequentInRange(String from, String to) {
         // TODO
-        return Optional.empty();
+    return buildFrequencyMap().subMap(from, true, to, true).entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey);
     }
 }
