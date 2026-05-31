@@ -1,0 +1,1025 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MCON 364 Final Review: Trees and threads</title>
+  <style>
+    :root{
+      --bg:#f7f8fb;
+      --panel:#ffffff;
+      --ink:#172033;
+      --muted:#64748b;
+      --brand:#059669;
+      --brand2:#0d9488;
+      --good:#059669;
+      --warn:#d97706;
+      --bad:#dc2626;
+      --line:#dbe3ef;
+      --soft:#ecfdf5;
+      --soft2:#f0fdfa;
+      --soft3:#fefce8;
+      --code:#0f172a;
+      --cream:#fffbeb;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+      line-height:1.55;
+    }
+    header{
+      background:
+        radial-gradient(circle at top left,rgba(255,255,255,.22),transparent 34%),
+        linear-gradient(135deg,var(--brand),var(--brand2));
+      color:white;
+      padding:44px 28px 36px;
+      border-bottom:8px solid rgba(255,255,255,.25);
+    }
+    header h1{margin:0;font-size:clamp(2rem,4vw,3.7rem);line-height:1.05;letter-spacing:-.03em}
+    header p{max-width:1000px;font-size:1.18rem;margin:16px 0 0;opacity:.96}
+    nav{
+      position:sticky;
+      top:0;
+      z-index:10;
+      background:rgba(255,255,255,.92);
+      backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line);
+      padding:10px 22px;
+    }
+    nav .inner{max-width:1180px;margin:0 auto;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .traversal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px;margin:18px 0}
+    .tcard{border:1px solid var(--line);border-radius:18px;padding:18px;background:#fff}
+    .tcard.pre{background:#f0fdf4;border-color:#86efac}
+    .tcard.ino{background:#f0fdfa;border-color:#5eead4}
+    .tcard.post{background:#fefce8;border-color:#fcd34d}
+    .tcard.bfs{background:#fff5f5;border-color:#fca5a5}
+    .tcard h4{margin:0 0 6px;font-size:1.1rem}
+    .tcard .order{font-size:.92rem;color:var(--muted);margin-bottom:10px}
+    .tcard .result{font-weight:900;color:#065f46;font-size:1.08rem;letter-spacing:.03em}
+    .tcard.bfs .result{color:#991b1b}
+    nav a{
+      color:#065f46;
+      text-decoration:none;
+      border:1px solid #a7f3d0;
+      background:#ecfdf5;
+      padding:7px 10px;
+      border-radius:999px;
+      font-size:.9rem;
+      font-weight:700;
+    }
+    main{max-width:1180px;margin:0 auto;padding:28px}
+    section{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:24px;
+      margin:24px 0;
+      padding:28px;
+      box-shadow:0 10px 30px rgba(15,23,42,.06);
+    }
+    h2{font-size:clamp(1.65rem,3vw,2.25rem);margin:0 0 12px;line-height:1.15;letter-spacing:-.02em}
+    h3{font-size:1.25rem;margin:26px 0 10px;color:#065f46}
+    h4{font-size:1.05rem;margin:0 0 8px;color:#334155}
+    p{margin:10px 0}
+    .muted{color:var(--muted)}
+    .lead{font-size:1.1rem;color:#334155;max-width:980px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+    .two{display:grid;grid-template-columns:1.05fr .95fr;gap:18px;align-items:start}
+    @media(max-width:850px){.two{grid-template-columns:1fr}}
+    .card{border:1px solid var(--line);border-radius:18px;padding:18px;background:#fff;}
+    .card.green{background:var(--soft)}
+    .card.teal{background:var(--soft2)}
+    .card.yellow{background:var(--soft3)}
+    .card.cream{background:var(--cream)}
+    .badge{
+      display:inline-block;
+      padding:5px 10px;
+      border-radius:999px;
+      background:#d1fae5;
+      color:#065f46;
+      font-weight:800;
+      font-size:.78rem;
+      letter-spacing:.02em;
+      margin-right:6px;
+      text-transform:uppercase;
+    }
+    .badge.teal{background:#ccfbf1;color:#0f766e}
+    .badge.warn{background:#fff7ed;color:#c2410c}
+    .badge.red{background:#fee2e2;color:#991b1b}
+    .flow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:18px 0}
+    .node{padding:12px 15px;border-radius:15px;background:#d1fae5;border:1px solid #6ee7b7;font-weight:800;color:#064e3b}
+    .node.teal{background:#ccfbf1;border-color:#5eead4;color:#134e4a}
+    .arrow{font-size:1.45rem;color:var(--muted)}
+    ul,ol{padding-left:1.35rem}
+    li{margin:.38rem 0}
+    code{
+      background:#eef2f7;
+      border:1px solid #d8e0ec;
+      border-radius:6px;
+      padding:1px 5px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+      font-size:.92em;
+    }
+    pre{
+      background:var(--code);
+      color:#e5e7eb;
+      border-radius:17px;
+      padding:16px;
+      overflow:auto;
+      line-height:1.45;
+      border:1px solid #1e293b;
+    }
+    pre code{background:transparent;border:0;color:inherit;padding:0}
+    .callout{
+      border-left:6px solid var(--brand);
+      background:#f0fdf4;
+      padding:15px 17px;
+      border-radius:13px;
+      margin:16px 0;
+    }
+    .question{border-left-color:var(--brand2);background:#f0fdfa}
+    .practice{border-left-color:var(--warn);background:#fffbeb}
+    .good{border-left-color:var(--good);background:#f0fdf4}
+    .pitfall{border-left-color:var(--bad);background:#fff5f5}
+    table{width:100%;border-collapse:collapse;margin:14px 0;border-radius:14px;overflow:hidden}
+    th,td{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}
+    th{background:#f1f5f9;color:#334155}
+    .big-number{
+      width:38px;height:38px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+      background:#d1fae5;color:#065f46;font-weight:900;margin-right:8px;
+    }
+    .compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:14px}
+    .mini-title{font-weight:900;color:#334155;margin-bottom:4px}
+    .footer{text-align:center;color:var(--muted);font-size:.9rem;margin:30px 0}
+    .checklist li{list-style:"✓  ";padding-left:4px}
+    .tree-art{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+      background:#1e293b;color:#86efac;
+      border-radius:14px;padding:16px;
+      font-size:.88rem;line-height:1.7;
+      white-space:pre;overflow:auto;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Final Review: Trees and Threads</h1>
+  <p>From binary search trees to Red-Black trees to Java's TreeMap, TreeSet, and their concurrent cousins — we'll learn the concepts, practice the Java tooling, and connect it all to streaming and multithreading.</p>
+</header>
+
+<nav>
+  <div class="inner">
+    <a href="#big-idea">Big Idea</a>
+    <a href="#traversals">Traversals</a>
+    <a href="#bst">Binary Search Tree</a>
+    <a href="#rbt">Red-Black Tree</a>
+    <a href="#java-tools">Java Tools</a>
+    <a href="#navigable">NavigableMap</a>
+    <a href="#concurrent">Concurrent Trees</a>
+    <a href="#exercises">Exercises</a>
+    <a href="#homework">Homework</a>
+    <a href="#final-connection">Final Connection</a>
+  </div>
+</nav>
+
+<main>
+
+<!-- ═══════════════════════════ BIG IDEA ═══════════════════════════ -->
+<section id="big-idea">
+  <h2>The pattern for today</h2>
+  <p class="lead">We are not memorizing facts. We are answering one question at a time: <em>why does a sorted tree give us things that a hash table cannot?</em></p>
+
+  <div class="flow">
+    <div class="node">Read the problem</div>
+    <div class="arrow">→</div>
+    <div class="node">Do we need sorted order?</div>
+    <div class="arrow">→</div>
+    <div class="node">Choose tree structure</div>
+    <div class="arrow">→</div>
+    <div class="node">Choose Java collection</div>
+    <div class="arrow">→</div>
+    <div class="node">Connect to streams or threads</div>
+    <div class="arrow">→</div>
+    <div class="node">Implement</div>
+  </div>
+
+  <div class="grid">
+    <div class="card green">
+      <span class="badge">Order</span>
+      <h3>When sorted order matters</h3>
+      <ul>
+        <li>Finding elements near a key (floor, ceiling)</li>
+        <li>Range queries (all keys between X and Y)</li>
+        <li>Iterating in alphabetical or numeric order</li>
+        <li>Ranked leaderboards or priority orderings</li>
+      </ul>
+    </div>
+    <div class="card teal">
+      <span class="badge teal">Structure</span>
+      <h3>Tree vs Hash</h3>
+      <ul>
+        <li>HashMap: O(1) lookup, <strong>no order</strong></li>
+        <li>TreeMap: O(log n) lookup, <strong>always sorted</strong></li>
+        <li>HashSet: O(1) contains, <strong>no order</strong></li>
+        <li>TreeSet: O(log n) contains, <strong>always sorted</strong></li>
+      </ul>
+    </div>
+    <div class="card yellow">
+      <span class="badge warn">Threads</span>
+      <h3>When threads are involved</h3>
+      <ul>
+        <li>TreeMap / TreeSet are <strong>not thread-safe</strong></li>
+        <li>Use <code>ConcurrentSkipListMap</code> instead of TreeMap</li>
+        <li>Use <code>ConcurrentSkipListSet</code> instead of TreeSet</li>
+        <li>Both maintain sorted order and support concurrent access</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout question">
+    <strong>Guiding question:</strong> Before we write code, let's ask: Does this problem need sorted access, range queries, or navigable operations? If yes, a tree-backed collection is the right choice.
+  </div>
+</section>
+<h2>Tree refresher</h2>
+
+<!-- ═══════════════════════════ TRAVERSALS ═══════════════════════════ -->
+<section id="traversals">
+  <h2><span class="big-number">★</span>Tree Traversals: BFS and the Three DFS</h2>
+  <p class="lead">A traversal is a systematic way of visiting every node in a tree exactly once. We covered <strong>one BFS</strong> strategy and <strong>three DFS</strong> strategies. The DFS three are: <strong>In-order</strong>, <strong>Pre-order</strong>, and <strong>Post-order</strong>.</p>
+
+  <h3>Working tree for all examples</h3>
+  <div class="tree-art">
+        5
+       / \
+      3   7
+     / \ / \
+    1  4 6  8</div>
+
+  <!-- ───── THE FOUR CARDS ───── -->
+  <div class="traversal-grid">
+
+    <!-- Pre-order -->
+    <div class="tcard pre">
+      <h4>DFS Pre-order</h4>
+      <div class="order">Visit: <strong>Root → Left → Right</strong></div>
+      <p>You record a node <em>before</em> you go deeper. Think of it as "stamp your foot when you first arrive at a node."</p>
+      <p>Algorithm (recursive):</p>
+      <pre><code>visit(node)
+preOrder(node.left)
+preOrder(node.right)</code></pre>
+      <p>Result on the example tree:</p>
+      <div class="result">5 → 3 → 1 → 4 → 7 → 6 → 8</div>
+      <p style="margin-top:10px;font-size:.9rem">Used for: copying a tree, prefix expression evaluation, serialising a tree.</p>
+    </div>
+
+    <!-- In-order -->
+    <div class="tcard ino">
+      <h4>DFS In-order</h4>
+      <div class="order">Visit: <strong>Left → Root → Right</strong></div>
+      <p>You record a node <em>between</em> its left and right subtrees. For a BST this produces <strong>sorted output</strong> — this is the traversal happening inside every TreeMap / TreeSet iteration.</p>
+      <p>Algorithm (recursive):</p>
+      <pre><code>inOrder(node.left)
+visit(node)
+inOrder(node.right)</code></pre>
+      <p>Result on the example tree:</p>
+      <div class="result">1 → 3 → 4 → 5 → 6 → 7 → 8</div>
+      <p style="margin-top:10px;font-size:.9rem">Used for: sorted output from a BST, expression trees (infix), validating a BST.</p>
+    </div>
+
+    <!-- Post-order -->
+    <div class="tcard post">
+      <h4>DFS Post-order</h4>
+      <div class="order">Visit: <strong>Left → Right → Root</strong></div>
+      <p>You record a node <em>after</em> both its children. Think "process the children before you process the parent."</p>
+      <p>Algorithm (recursive):</p>
+      <pre><code>postOrder(node.left)
+postOrder(node.right)
+visit(node)</code></pre>
+      <p>Result on the example tree:</p>
+      <div class="result">1 → 4 → 3 → 6 → 8 → 7 → 5</div>
+      <p style="margin-top:10px;font-size:.9rem">Used for: deleting a tree (delete children before parent), postfix expression evaluation, computing subtree sizes.</p>
+    </div>
+
+    <!-- BFS -->
+    <div class="tcard bfs">
+      <h4>BFS — Level-order</h4>
+      <div class="order">Visit: <strong>Level by level, left to right</strong></div>
+      <p>Uses a <strong>queue</strong> (not recursion). You add the root, then repeatedly dequeue a node, visit it, and enqueue its children.</p>
+      <p>Algorithm (iterative with Queue):</p>
+      <pre><code>Queue&lt;Node&gt; q = new LinkedList&lt;&gt;();
+q.add(root);
+while (!q.isEmpty()) {
+  Node n = q.poll();
+  visit(n);
+  if (n.left  != null) q.add(n.left);
+  if (n.right != null) q.add(n.right);
+}</code></pre>
+      <p>Result on the example tree:</p>
+      <div class="result">5 → 3 → 7 → 1 → 4 → 6 → 8</div>
+      <p style="margin-top:10px;font-size:.9rem">Used for: shortest path in unweighted graphs, finding nodes at depth k, printing a tree level-by-level.</p>
+    </div>
+
+  </div><!-- end traversal-grid -->
+
+  <!-- ───── COMPARISON TABLE ───── -->
+  <h3>Side-by-side comparison</h3>
+  <table>
+    <tr>
+      <th>Traversal</th>
+      <th>Type</th>
+      <th>Data structure needed</th>
+      <th>Order: root relative to children</th>
+      <th>Result on example tree</th>
+      <th>Key use case</th>
+    </tr>
+    <tr>
+      <td><strong>Pre-order</strong></td>
+      <td>DFS</td>
+      <td>Call stack (recursion)</td>
+      <td>Root <em>first</em></td>
+      <td>5 3 1 4 7 6 8</td>
+      <td>Copy / serialize a tree</td>
+    </tr>
+    <tr>
+      <td><strong>In-order</strong></td>
+      <td>DFS</td>
+      <td>Call stack (recursion)</td>
+      <td>Root <em>between</em></td>
+      <td>1 3 4 5 6 7 8 ← sorted!</td>
+      <td>BST sorted output; TreeMap iteration</td>
+    </tr>
+    <tr>
+      <td><strong>Post-order</strong></td>
+      <td>DFS</td>
+      <td>Call stack (recursion)</td>
+      <td>Root <em>last</em></td>
+      <td>1 4 3 6 8 7 5</td>
+      <td>Delete a tree; evaluate expression</td>
+    </tr>
+    <tr>
+      <td><strong>BFS / Level-order</strong></td>
+      <td>BFS</td>
+      <td><code>Queue</code> (iterative)</td>
+      <td>Level by level</td>
+      <td>5 3 7 1 4 6 8</td>
+      <td>Shortest path; level-k nodes</td>
+    </tr>
+  </table>
+
+  <!-- ───── KEY INSIGHTS ───── -->
+  <div class="two" style="margin-top:18px">
+    <div class="callout good">
+      <strong>The trick to remember pre/in/post:</strong><br>
+      The prefix tells you <em>when you visit the root</em>:<br>
+      <ul style="margin:8px 0">
+        <li><strong>Pre</strong>-order → root <strong>first</strong> (before children)</li>
+        <li><strong>In</strong>-order → root <strong>in the middle</strong> (between children)</li>
+        <li><strong>Post</strong>-order → root <strong>last</strong> (after children)</li>
+      </ul>
+      Left always comes before Right.
+    </div>
+    <div class="callout">
+      <strong>Why in-order = sorted for a BST:</strong><br>
+      Because of the BST invariant — everything to the left is smaller. When we finish the entire left subtree before visiting the current node, and only then move to the right subtree, we visit nodes in ascending order. This is exactly what <code>TreeMap</code> and <code>TreeSet</code> do when you iterate them.
+    </div>
+  </div>
+
+  <div class="callout question">
+    <strong>Quick check:</strong> For the tree above, trace BFS yourself with a Queue. Start by adding 5. What order do you dequeue? Does it match the table?
+  </div>
+  <div class="callout question">
+    <strong>Quick check 2:</strong> If we insert keys 10, 5, 15, 3, 7 into a BST in that order, what does in-order traversal produce? What about pre-order?
+  </div>
+</section>
+
+<!-- ═══════════════════════════ BST ═══════════════════════════ -->
+<section id="bst">
+  <h3><span class="big-number">1</span>Binary Search Tree (BST)</h3>
+  <p class="lead">A BST is a binary tree where every left child is smaller and every right child is larger. This condition makes ordered lookup, insertion, and deletion efficient.</p>
+
+  <div class="two">
+    <div>
+      <h3>The BST invariant</h3>
+      <p>For every node N:</p>
+      <ul>
+        <li>All values in the <strong>left subtree</strong> are <strong>&lt; N</strong></li>
+        <li>All values in the <strong>right subtree</strong> are <strong>&gt; N</strong></li>
+      </ul>
+
+      <h3>Example tree containing: 5, 3, 7, 1, 4, 6, 8</h3>
+      <div class="tree-art">
+        5
+       / \
+      3   7
+     / \ / \
+    1  4 6  8</div>
+
+      <h3>BST operations</h3>
+      <table>
+        <tr><th>Operation</th><th>Average case</th><th>Worst case (skewed)</th></tr>
+        <tr><td>Search</td><td>O(log n)</td><td>O(n)</td></tr>
+        <tr><td>Insert</td><td>O(log n)</td><td>O(n)</td></tr>
+        <tr><td>Delete</td><td>O(log n)</td><td>O(n)</td></tr>
+        <tr><td>In-order traversal</td><td>O(n)</td><td>O(n)</td></tr>
+      </table>
+    </div>
+
+    <div>
+      <h3>In-order traversal = sorted output</h3>
+      <p>Walking a BST in-order (left → root → right) visits every node from smallest to largest. This is why tree-backed collections can iterate in sorted order for free.</p>
+
+      <div class="callout good">
+        <strong>Key insight:</strong> An in-order traversal of the example tree above visits: 1, 3, 4, 5, 6, 7, 8. Sorted!
+      </div>
+
+      <h3>The BST weakness: skewed trees</h3>
+      <p>If we insert keys in sorted order (1, 2, 3, 4, 5…), the tree degrades into a linked list:</p>
+      <div class="tree-art">
+1
+ \
+  2
+   \
+    3
+     \
+      4  ← O(n) to find 4</div>
+
+      <div class="callout pitfall">
+        <strong>Pitfall:</strong> A BST has no mechanism to re-balance itself. Worst-case performance is O(n), no better than a linked list. This is why Java does not expose a plain BST — it uses a self-balancing tree instead.
+      </div>
+    </div>
+  </div>
+
+  <div class="callout question">
+    <strong>Think about it:</strong> Given the BST above with 5 at the root, what path do we follow to find the value 6? How many comparisons do we make?
+  </div>
+</section>
+
+<!-- ═══════════════════════════ RED-BLACK TREE ═══════════════════════════ -->
+<section id="rbt">
+  <h2><span class="big-number">2</span>Red-Black Tree</h2>
+  <p class="lead">Java's <code>TreeMap</code> and <code>TreeSet</code> are backed by a Red-Black tree — a self-balancing BST that guarantees O(log n) in all cases, even for sorted insertions.</p>
+
+  <h3>The five Red-Black properties</h3>
+  <ol>
+    <li>Every node is either <strong>red</strong> or <strong>black</strong>.</li>
+    <li>The root is always <strong>black</strong>.</li>
+    <li>Every null leaf (sentinel) is considered <strong>black</strong>.</li>
+    <li>If a node is <strong>red</strong>, both of its children must be <strong>black</strong> (no two consecutive red nodes on any path).</li>
+    <li>For every node, all simple paths from that node to its descendant leaves contain the same number of <strong>black</strong> nodes.</li>
+  </ol>
+
+  <div class="callout good">
+    <strong>Why these rules work:</strong> Property 5 (equal black-height on every path) is the key. It ensures the longest path is at most twice the shortest path, so the tree is always roughly balanced. This guarantees O(log n) height.
+  </div>
+
+  <div class="two">
+    <div>
+      <h3>Rotations and re-coloring</h3>
+      <p>When an insertion or deletion violates a Red-Black property, the tree fixes itself using:</p>
+      <ul>
+        <li><strong>Rotations</strong> — restructure the tree locally (left-rotate or right-rotate) without changing BST ordering.</li>
+        <li><strong>Re-coloring</strong> — flip node colors to restore the Red-Black properties.</li>
+      </ul>
+      <p>These fixups take O(log n) time and happen automatically inside TreeMap and TreeSet — we never call them directly.</p>
+    </div>
+    <div>
+      <h3>Red-Black tree guarantees</h3>
+      <table>
+        <tr><th>Operation</th><th>Guaranteed time</th></tr>
+        <tr><td>Search / get</td><td>O(log n)</td></tr>
+        <tr><td>Insert / put</td><td>O(log n)</td></tr>
+        <tr><td>Delete / remove</td><td>O(log n)</td></tr>
+        <tr><td>In-order traversal</td><td>O(n)</td></tr>
+        <tr><td>First / last key</td><td>O(log n)</td></tr>
+        <tr><td>Floor / ceiling</td><td>O(log n)</td></tr>
+      </table>
+
+      <div class="callout">
+        <strong>Bottom line:</strong> Because TreeMap and TreeSet use a Red-Black tree internally, all their operations are O(log n) regardless of the insertion order. The skewed-tree problem of a plain BST does not apply here.
+      </div>
+    </div>
+  </div>
+
+  <div class="callout question">
+    <strong>Think about it:</strong> Why can't we just use property 5 alone (equal black-heights) without property 4 (no two consecutive red nodes)? What would go wrong?
+  </div>
+</section>
+
+<!-- ═══════════════════════════ JAVA TOOLS ═══════════════════════════ -->
+<section id="java-tools">
+  <h2><span class="big-number">3</span>Java Tools: TreeMap and TreeSet</h2>
+  <p class="lead">Java's tree-backed collections all implement <code>NavigableMap</code> or <code>NavigableSet</code>, which adds powerful range query operations on top of the basic sorted ordering.</p>
+
+  <div class="grid">
+    <div class="card green">
+      <span class="badge">TreeSet</span>
+      <h4>Sorted, no duplicates</h4>
+      <pre><code>TreeSet&lt;String&gt; names = new TreeSet&lt;&gt;();
+names.add("Charlie");
+names.add("Alice");
+names.add("Bob");
+
+// Iterates: Alice, Bob, Charlie
+for (String name : names) { ... }
+
+names.first();    // "Alice"
+names.last();     // "Charlie"
+names.floor("B"); // "Bob" (greatest &lt;= "B")
+names.ceiling("B"); // "Bob" (smallest &gt;= "B")
+names.headSet("Bob"); // [Alice] (strictly before Bob)
+names.subSet("Alice", true, "Charlie", false); // [Alice, Bob]</code></pre>
+    </div>
+    <div class="card teal">
+      <span class="badge teal">TreeMap</span>
+      <h4>Sorted key-value map</h4>
+      <pre><code>TreeMap&lt;String, Integer&gt; scores = new TreeMap&lt;&gt;();
+scores.put("Charlie", 88);
+scores.put("Alice", 95);
+scores.put("Bob", 72);
+
+// Iterates in key order: Alice, Bob, Charlie
+scores.entrySet().forEach(e -&gt; ...);
+
+scores.firstKey();         // "Alice"
+scores.lastEntry();        // Charlie=88
+scores.floorKey("B");      // "Bob"
+scores.headMap("Charlie"); // {Alice=95, Bob=72}
+scores.subMap("Alice", true, "Charlie", false);</code></pre>
+    </div>
+    <div class="card yellow">
+      <span class="badge warn">Custom Order</span>
+      <h4>Comparator-based ordering</h4>
+      <pre><code>// Sort by salary descending
+TreeSet&lt;Employee&gt; byPaycheck = new TreeSet&lt;&gt;(
+    Comparator.comparingInt(Employee::salary).reversed()
+);
+
+// Sort map keys by string length then alphabetically
+TreeMap&lt;String, Integer&gt; byLength = new TreeMap&lt;&gt;(
+    Comparator.comparingInt(String::length)
+              .thenComparing(Comparator.naturalOrder())
+);</code></pre>
+    </div>
+  </div>
+
+  <h3>TreeMap + Streams: the natural combination</h3>
+  <p>Because TreeMap iterates in sorted key order, streaming its entry set gives us sorted data without any extra sort step.</p>
+
+  <pre><code>// Build a frequency map from a list of words — sorted alphabetically for free
+TreeMap&lt;String, Long&gt; frequency = words.stream()
+    .collect(Collectors.groupingBy(w -&gt; w, TreeMap::new, Collectors.counting()));
+
+// Top 5 words by count (frequency map → stream → sort by value → limit)
+List&lt;String&gt; top5 = frequency.entrySet().stream()
+    .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+    .limit(5)
+    .map(Map.Entry::getKey)
+    .collect(Collectors.toList());
+
+// Group employees by department — departments in alphabetical order, employees sorted within each group
+TreeMap&lt;String, TreeSet&lt;Employee&gt;&gt; roster = employees.stream()
+    .collect(Collectors.groupingBy(
+        Employee::department,
+        TreeMap::new,
+        Collectors.toCollection(TreeSet::new)
+    ));</code></pre>
+
+  <div class="callout good">
+    <strong>Key pattern:</strong> Passing <code>TreeMap::new</code> as the map factory to <code>Collectors.groupingBy</code> is the standard way to get a sorted grouping from a stream.
+  </div>
+</section>
+
+<!-- ═══════════════════════════ NAVIGABLE ═══════════════════════════ -->
+<section id="navigable">
+  <h2><span class="big-number">4</span>NavigableMap: Range Queries</h2>
+  <p class="lead"><code>NavigableMap</code> (implemented by <code>TreeMap</code> and <code>ConcurrentSkipListMap</code>) is the interface that makes tree-backed maps so powerful for range queries.</p>
+
+  <table>
+    <tr><th>Method</th><th>What it returns</th><th>Example with keys: A, B, C, D, E</th></tr>
+    <tr>
+      <td><code>headMap(toKey)</code></td>
+      <td>Keys strictly less than toKey</td>
+      <td><code>headMap("C")</code> → {A, B}</td>
+    </tr>
+    <tr>
+      <td><code>headMap(toKey, inclusive)</code></td>
+      <td>Keys up to toKey, inclusive flag controls boundary</td>
+      <td><code>headMap("C", true)</code> → {A, B, C}</td>
+    </tr>
+    <tr>
+      <td><code>tailMap(fromKey)</code></td>
+      <td>Keys greater than or equal to fromKey</td>
+      <td><code>tailMap("C")</code> → {C, D, E}</td>
+    </tr>
+    <tr>
+      <td><code>subMap(from, to)</code></td>
+      <td>Keys in [from, to) — from inclusive, to exclusive</td>
+      <td><code>subMap("B", "D")</code> → {B, C}</td>
+    </tr>
+    <tr>
+      <td><code>subMap(from, fi, to, ti)</code></td>
+      <td>Keys with explicit inclusive/exclusive flags on both ends</td>
+      <td><code>subMap("B", true, "D", true)</code> → {B, C, D}</td>
+    </tr>
+    <tr>
+      <td><code>floorKey(key)</code></td>
+      <td>Greatest key ≤ the given key</td>
+      <td><code>floorKey("C")</code> → "C"</td>
+    </tr>
+    <tr>
+      <td><code>ceilingKey(key)</code></td>
+      <td>Smallest key ≥ the given key</td>
+      <td><code>ceilingKey("C")</code> → "C"</td>
+    </tr>
+    <tr>
+      <td><code>descendingMap()</code></td>
+      <td>A reverse-order view of the entire map</td>
+      <td>Iterates E → D → C → B → A</td>
+    </tr>
+  </table>
+
+  <div class="callout">
+    <strong>Important:</strong> The views returned by <code>headMap</code>, <code>tailMap</code>, and <code>subMap</code> are <em>live views</em> — they reflect any changes to the underlying map. If you only need a snapshot, collect the values into a list immediately.
+  </div>
+
+  <h3>Range queries in practice</h3>
+  <pre><code>TreeMap&lt;String, Book&gt; titleIndex = buildTitleIndex(); // keyed by title
+
+// All books whose title starts with "A" (prefix range query)
+String prefix = "A";
+NavigableMap&lt;String, Book&gt; aBooks =
+    titleIndex.subMap(prefix, true, prefix + Character.MAX_VALUE, false);
+
+// Stream the matching books
+List&lt;Book&gt; result = new ArrayList&lt;&gt;(aBooks.values()); // snapshot</code></pre>
+</section>
+
+<!-- ═══════════════════════════ CONCURRENT ═══════════════════════════ -->
+<section id="concurrent">
+  <h2><span class="big-number">5</span>Concurrent Sorted Collections</h2>
+  <p class="lead">When multiple threads need sorted access simultaneously, <code>TreeMap</code> and <code>TreeSet</code> are not thread-safe. Java provides two drop-in concurrent replacements.</p>
+
+  <div class="compare">
+    <div class="card green">
+      <div class="mini-title">ConcurrentSkipListMap</div>
+      <p>Thread-safe replacement for <code>TreeMap</code>.</p>
+      <ul>
+        <li>Keys always in sorted order</li>
+        <li>All <code>NavigableMap</code> methods available</li>
+        <li>O(log n) get, put, remove</li>
+        <li>Lock-free for most reads</li>
+      </ul>
+      <pre><code>ConcurrentSkipListMap&lt;Long, String&gt; log =
+    new ConcurrentSkipListMap&lt;&gt;();
+
+// Multiple threads can safely call:
+log.put(key, message);
+log.tailMap(timestamp).values();</code></pre>
+    </div>
+    <div class="card teal">
+      <div class="mini-title">ConcurrentSkipListSet</div>
+      <p>Thread-safe replacement for <code>TreeSet</code>.</p>
+      <ul>
+        <li>Elements always in sorted order</li>
+        <li>All <code>NavigableSet</code> methods available</li>
+        <li>O(log n) add, contains, remove</li>
+        <li>Iteration reflects concurrent modifications</li>
+      </ul>
+      <pre><code>ConcurrentSkipListSet&lt;ScoreEntry&gt; board =
+    new ConcurrentSkipListSet&lt;&gt;();
+
+// Multiple threads can safely call:
+board.add(new ScoreEntry(player, score, ts));
+board.stream().limit(10)
+     .collect(Collectors.toList()); // top 10</code></pre>
+    </div>
+  </div>
+
+  <h3>Why a Skip List instead of a Red-Black tree?</h3>
+  <p>Red-Black trees require complex tree rotations during updates, which are hard to make lock-free. A Skip List achieves O(log n) sorted operations using simpler pointer links that can be updated atomically, making concurrent access much more practical.</p>
+
+  <div class="callout pitfall">
+    <strong>Common mistake:</strong> Wrapping a TreeMap in <code>Collections.synchronizedMap</code> does make individual method calls atomic, but iteration is still not safe — the entire loop must be synchronized externally. <code>ConcurrentSkipListMap</code> has no such restriction.
+  </div>
+
+  <h3>Full concurrent pattern: sorted log with ExecutorService</h3>
+  <pre><code>ConcurrentSkipListMap&lt;Long, String&gt; eventLog = new ConcurrentSkipListMap&lt;&gt;();
+AtomicLong sequence = new AtomicLong(0);
+
+// Thread-safe insertion with unique composite key
+void logEvent(long timestamp, String message) {
+    long key = timestamp * 1_000_000L + sequence.getAndIncrement();
+    eventLog.put(key, message);
+}
+
+// ↓ eventsEach and sources are PARAMETERS of this method ↓
+void runConcurrentSources(List&lt;String&gt; sources, int eventsEach) {
+
+    ExecutorService pool = Executors.newFixedThreadPool(sources.size());
+
+    for (String source : sources) {      // 'source' — new copy each iteration
+
+        pool.submit(() -&gt; {              // lambda CAPTURES 'source' and 'eventsEach'
+                                         // from the enclosing method scope
+            for (int i = 0; i &lt; eventsEach; i++)   // ← comes from the method parameter above
+                logEvent(System.currentTimeMillis(), source + "-" + i);
+        });
+    }
+    pool.shutdown();
+    pool.awaitTermination(30, TimeUnit.SECONDS);
+}
+
+// After all threads finish, stream the sorted results:
+List&lt;String&gt; recent = eventLog.descendingMap().values().stream()
+    .limit(10)
+    .collect(Collectors.toUnmodifiableList());</code></pre>
+
+  <div class="callout good">
+    <strong>Where does <code>eventsEach</code> come from?</strong><br>
+    It is a <strong>parameter of the enclosing method</strong> <code>runConcurrentSources</code>.
+    The lambda inside <code>pool.submit</code> forms a <em>closure</em> — it can read variables
+    from the surrounding method scope as long as they are <strong>effectively final</strong>
+    (never reassigned after the lambda is created).<br><br>
+    Both captured variables satisfy that rule:<br>
+    &bull; <code>eventsEach</code> — method parameter, never changed → effectively final ✓<br>
+    &bull; <code>source</code> — loop variable, a brand-new copy each iteration → effectively final ✓
+  </div>
+
+  <div class="callout pitfall">
+    <strong>What breaks effective-final?</strong><br>
+    If you wrote <code>eventsEach++</code> anywhere in the method, the compiler would refuse to compile
+    the lambda with: <em>"Variable used in lambda expression should be final or effectively final."</em>
+    The same applies to <code>source</code>: you cannot do <code>source = source.trim()</code> before
+    using it inside the lambda.
+  </div>
+</section>
+
+<!-- ═══════════════════════════ EXERCISES ═══════════════════════════ -->
+<section id="exercises">
+  <h2>In-class Exercises</h2>
+  <p class="lead">Three exercises, each one adding a layer of complexity. We follow the same path: model → choose structure → implement.</p>
+
+  <!-- Exercise 1 -->
+  <div class="card green" style="margin-bottom:18px">
+    <span class="badge">Exercise 1</span>
+    <h3>Word Frequency Counter — <code>WordFrequencyCounter.java</code></h3>
+
+    <div class="callout">
+      <strong>Problem:</strong> You receive a list of cleaned, lowercased words. Count how many times each word appears, then answer questions about those counts — all in sorted order.
+    </div>
+
+    <h4>Step 1: Model the data</h4>
+    <p>The input is a <code>List&lt;String&gt;</code>. The core output is a map from word to count. We want that map sorted by word, so we choose <code>TreeMap&lt;String, Long&gt;</code>.</p>
+
+    <h4>Step 2: Identify the operations</h4>
+    <pre><code>public TreeMap&lt;String, Long&gt; buildFrequencyMap()
+public List&lt;String&gt; getTopN(int n)
+public List&lt;String&gt; getWordsStartingWith(char prefix)
+public Optional&lt;String&gt; getMostFrequentInRange(String from, String to)</code></pre>
+
+    <h4>Step 3: Choose the data structure and algorithm</h4>
+    <p>This is a stream collection problem:</p>
+    <ul>
+      <li><code>buildFrequencyMap</code> → <code>Collectors.groupingBy(w → w, TreeMap::new, Collectors.counting())</code></li>
+      <li><code>getTopN</code> → stream the entry set, sort by value descending, limit, collect keys</li>
+      <li><code>getWordsStartingWith</code> → <code>TreeMap.subMap(prefix, prefix+1)</code> then collect keys</li>
+      <li><code>getMostFrequentInRange</code> → <code>TreeMap.subMap(from, true, to, true)</code> then stream and max</li>
+    </ul>
+
+    <h4>Step 4: Implement together</h4>
+    <p>Open <code>exercises/WordFrequencyCounter.java</code> and complete each TODO.</p>
+
+    <div class="callout question">
+      <strong>Discussion:</strong> If we used <code>HashMap</code> instead of <code>TreeMap</code> in <code>buildFrequencyMap</code>, which methods would still work and which would break? Why?
+    </div>
+
+    <div class="callout pitfall">
+      <strong>Watch for this:</strong> <code>headMap(key)</code> excludes the key. <code>headMap(key, true)</code> includes it. Pick the wrong one and your range queries will silently miss words at the boundary.
+    </div>
+  </div>
+
+  <!-- Exercise 2 -->
+  <div class="card teal" style="margin-bottom:18px">
+    <span class="badge teal">Exercise 2</span>
+    <h3>Employee Roster — <code>EmployeeRoster.java</code></h3>
+
+    <div class="callout">
+      <strong>Problem:</strong> A company has employees in multiple departments. Organise them so departments are listed alphabetically and employees within each department are also sorted by name.
+    </div>
+
+    <h4>Step 1: Model the data</h4>
+    <p>The <code>Employee</code> record holds name, department, and salary. It implements <code>Comparable&lt;Employee&gt;</code> so it can be stored directly in a <code>TreeSet</code>.</p>
+
+    <h4>Step 2: Identify the operations</h4>
+    <pre><code>public TreeMap&lt;String, TreeSet&lt;Employee&gt;&gt; buildRoster()
+public Map&lt;String, Employee&gt; getTopEarnerPerDepartment()
+public List&lt;Employee&gt; getAllEmployeesSorted()
+public NavigableMap&lt;String, TreeSet&lt;Employee&gt;&gt; getDepartmentsInRange(String from, String to)</code></pre>
+
+    <h4>Step 3: Why two levels of tree?</h4>
+    <div class="compare">
+      <div class="card">
+        <div class="mini-title">Outer TreeMap&lt;String, …&gt;</div>
+        <p>Keys are department names. Iterating this map gives departments in alphabetical order.</p>
+      </div>
+      <div class="card">
+        <div class="mini-title">Inner TreeSet&lt;Employee&gt;</div>
+        <p>Elements are employees. Iterating this set gives employees in the order defined by <code>Employee.compareTo</code> (alphabetical by name).</p>
+      </div>
+    </div>
+
+    <h4>Step 4: Implement together</h4>
+    <pre><code>// buildRoster - one-liner with streams
+return employees.stream()
+    .collect(Collectors.groupingBy(
+        Employee::department,
+        TreeMap::new,
+        Collectors.toCollection(TreeSet::new)
+    ));</code></pre>
+
+    <div class="callout practice">
+      <strong>Class exercise:</strong> After implementing <code>buildRoster</code>, implement <code>getDepartmentsInRange</code>. Then test: call <code>getDepartmentsInRange("Engineering", "Marketing")</code> on a roster with Engineering, HR, IT, Marketing, and Sales.
+    </div>
+  </div>
+
+  <!-- Exercise 3 -->
+  <div class="card yellow">
+    <span class="badge warn">Exercise 3</span>
+    <h3>Concurrent Leaderboard — <code>ConcurrentLeaderboard.java</code></h3>
+
+    <div class="callout">
+      <strong>Problem:</strong> A game server receives score submissions from many threads simultaneously. The leaderboard must always be sorted (highest score first) and safe for concurrent access.
+    </div>
+
+    <h4>Step 1: Model the data</h4>
+    <p>The <code>ScoreEntry</code> record holds playerName, score, and timestamp. Its <code>compareTo</code> sorts highest score first — so when we iterate the set, the top scorer comes first.</p>
+
+    <h4>Step 2: Why ConcurrentSkipListSet?</h4>
+    <table>
+      <tr><th></th><th>TreeSet</th><th>ConcurrentSkipListSet</th></tr>
+      <tr><td>Sorted?</td><td>Yes</td><td>Yes</td></tr>
+      <tr><td>Thread-safe?</td><td>No</td><td>Yes</td></tr>
+      <tr><td>add() from multiple threads</td><td>Data corruption / exception</td><td>Safe</td></tr>
+      <tr><td>iterate while others write?</td><td>ConcurrentModificationException</td><td>Safe (weakly consistent)</td></tr>
+    </table>
+
+    <h4>Step 3: Implement together</h4>
+    <pre><code>public void submitScore(ScoreEntry entry) {
+    leaderboard.add(entry);
+    totalSubmissions.incrementAndGet(); // AtomicInteger — no synchronization needed
+}
+
+public List&lt;ScoreEntry&gt; getTopN(int n) {
+    return leaderboard.stream()  // already sorted highest-first by compareTo
+        .limit(n)
+        .collect(Collectors.toUnmodifiableList());
+}</code></pre>
+
+    <div class="callout practice">
+      <strong>Class exercise:</strong> Implement <code>runSimulation</code>. Create an ExecutorService with as many threads as players. Have each thread submit scoresEach random scores. Verify that <code>getTotalSubmissions()</code> equals players * scoresEach.
+    </div>
+
+    <div class="callout pitfall">
+      <strong>Watch for this:</strong> Do not use <code>synchronized</code> on any method. If you find yourself reaching for <code>synchronized</code>, you have chosen the wrong data structure. The concurrent collections handle synchronization internally.
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ HOMEWORK ═══════════════════════════ -->
+<section id="homework">
+  <h2>Homework: Same Shapes, Different Stories</h2>
+  <p>Each homework problem has the same structure as an in-class exercise, with a different domain. Solve these on your own before the next class.</p>
+
+  <div class="grid">
+    <div class="card cream">
+      <span class="badge warn">Homework 1</span>
+      <h3>Library Catalog — <code>LibraryCatalog.java</code></h3>
+      <p>A library stores books (title, author, year). Build sorted indexes and answer range queries.</p>
+      <pre><code>public TreeMap&lt;String, Book&gt; buildTitleIndex()
+public TreeMap&lt;String, TreeSet&lt;Book&gt;&gt; buildAuthorIndex()
+public List&lt;Book&gt; getBooksPublishedBefore(int year)
+public List&lt;String&gt; getAuthorsWithMoreThan(int n)
+public List&lt;Book&gt; findByTitlePrefix(String prefix)</code></pre>
+      <div class="callout question">
+        <strong>Think before coding:</strong>
+        <ul>
+          <li>Why does <code>buildTitleIndex</code> use <code>Book</code> as the value but <code>buildAuthorIndex</code> uses <code>TreeSet&lt;Book&gt;</code> as the value?</li>
+          <li>For <code>findByTitlePrefix</code>, what does <code>prefix + Character.MAX_VALUE</code> give us as the upper bound?</li>
+          <li>For <code>getAuthorsWithMoreThan(n)</code>, should the returned list be sorted? By what?</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card cream">
+      <span class="badge warn">Homework 2</span>
+      <h3>Student GradeBook — <code>StudentGradeBook.java</code></h3>
+      <p>A course has students with numeric grades. Produce statistics and ranked lists.</p>
+      <pre><code>public TreeMap&lt;String, Double&gt; buildSortedGradeBook()
+public DoubleSummaryStatistics getStatistics()
+public TreeMap&lt;String, Long&gt; getLetterGradeDistribution()
+public List&lt;String&gt; getTopStudents(int n)
+public List&lt;String&gt; getStudentsInScoreRange(double low, double high)</code></pre>
+      <div class="callout question">
+        <strong>Think before coding:</strong>
+        <ul>
+          <li>The constructor receives a <code>Map&lt;String, Double&gt;</code>. Why do we wrap it in a <code>new TreeMap&lt;&gt;(grades)</code> in <code>buildSortedGradeBook</code>?</li>
+          <li>For <code>getLetterGradeDistribution</code>, the grouping key is a computed letter grade, not a field. How do we write a <code>groupingBy</code> where the key is a lambda, not a method reference?</li>
+          <li>For <code>getTopStudents</code>, we want highest score first. What comparator do we need?</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card cream">
+      <span class="badge warn">Homework 3</span>
+      <h3>Concurrent Event Log — <code>ConcurrentEventLog.java</code></h3>
+      <p>A distributed system fires events from many threads. Store them in time order, safely.</p>
+      <pre><code>public void logEvent(long timestamp, String message)
+public void runConcurrentSources(List&lt;String&gt; sources, int eventsEach)
+public List&lt;String&gt; getEventsAfter(long timestamp)
+public List&lt;String&gt; getEventsBetween(long from, long to)
+public List&lt;String&gt; getMostRecentN(int n)</code></pre>
+      <div class="callout question">
+        <strong>Think before coding:</strong>
+        <ul>
+          <li>Two events arrive at exactly the same millisecond. If we use the raw timestamp as the map key, what happens? How does <code>timestamp * 1_000_000L + sequence.getAndIncrement()</code> solve this?</li>
+          <li>For <code>getEventsAfter(timestamp)</code>, we must exclude the timestamp boundary itself. Why do we use <code>(timestamp + 1) * 1_000_000L</code> as the lower bound?</li>
+          <li>For <code>getMostRecentN</code>, <code>log.descendingMap()</code> gives us the map in reverse order. What type does it return?</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ FINAL CONNECTION ═══════════════════════════ -->
+<section id="final-connection">
+  <h2>How this connects to the final</h2>
+  <p class="lead">The final can change the story, but the shape of the problem will still be recognizable.</p>
+
+  <table>
+    <tr>
+      <th>If the final says...</th>
+      <th>We should think...</th>
+      <th>Likely tools</th>
+    </tr>
+    <tr>
+      <td>"Results must be in alphabetical / sorted order"</td>
+      <td>Tree-backed collection; no sort step needed on iteration.</td>
+      <td><code>TreeMap</code>, <code>TreeSet</code>, <code>Collectors.toCollection(TreeSet::new)</code></td>
+    </tr>
+    <tr>
+      <td>"Find all items between X and Y"</td>
+      <td>Range query — NavigableMap or NavigableSet.</td>
+      <td><code>subMap</code>, <code>headMap</code>, <code>tailMap</code></td>
+    </tr>
+    <tr>
+      <td>"Group by some field, keep each group sorted"</td>
+      <td>Two-level tree: TreeMap for the groups, TreeSet inside each group.</td>
+      <td><code>Collectors.groupingBy(..., TreeMap::new, Collectors.toCollection(TreeSet::new))</code></td>
+    </tr>
+    <tr>
+      <td>"Multiple threads need sorted access simultaneously"</td>
+      <td>Tree-backed collection is not thread-safe — switch to the concurrent version.</td>
+      <td><code>ConcurrentSkipListMap</code>, <code>ConcurrentSkipListSet</code></td>
+    </tr>
+    <tr>
+      <td>"Count / average / min / max over a collection"</td>
+      <td>Stream summary statistics or groupingBy with counting.</td>
+      <td><code>summaryStatistics()</code>, <code>Collectors.counting()</code>, <code>Collectors.summarizingDouble</code></td>
+    </tr>
+    <tr>
+      <td>"Multiple threads submit work, query results later"</td>
+      <td>Producer writes concurrently; consumer reads after pool shuts down.</td>
+      <td><code>ExecutorService</code>, <code>ConcurrentSkipListMap</code>, <code>AtomicLong</code></td>
+    </tr>
+  </table>
+
+  <div class="callout good">
+    <strong>Final reminder:</strong> Trees give you sorted order and O(log n) operations. Streams let you express what you want without loops. Concurrent collections let you share sorted state safely across threads. When all three come together, you have solved the whole problem.
+  </div>
+
+  <h3>Exit checklist</h3>
+  <ul class="checklist">
+    <li>We can name the four traversals (BFS + three DFS) and state the visit order for each one.</li>
+    <li>We can trace pre-order, in-order, post-order, and BFS by hand on a small tree.</li>
+    <li>We can explain why in-order traversal of a BST always produces sorted output.</li>
+    <li>We know that BFS uses a Queue and the three DFS traversals use recursion (the call stack).</li>
+    <li>We can explain why a BST can degrade to O(n) and how a Red-Black tree prevents that.</li>
+    <li>We can list three operations that work on TreeMap/TreeSet but not HashMap/HashSet.</li>
+    <li>We can use <code>Collectors.groupingBy</code> with <code>TreeMap::new</code> to produce a sorted grouping.</li>
+    <li>We can use <code>subMap</code>, <code>headMap</code>, and <code>tailMap</code> to slice a sorted map.</li>
+    <li>We can explain why <code>TreeSet</code> is not safe for multithreaded use.</li>
+    <li>We can substitute <code>ConcurrentSkipListSet</code> for <code>TreeSet</code> and explain the trade-off.</li>
+    <li>We can combine <code>ExecutorService</code> with a concurrent sorted collection to safely log events from multiple threads.</li>
+  </ul>
+</section>
+
+<div class="footer">
+  MCON 364 Final Review · Trees and threads · Binary Search Trees, Red-Black Trees, TreeMap, TreeSet, and Concurrent Sorted Collections
+</div>
+</main>
+</body>
+</html>
+

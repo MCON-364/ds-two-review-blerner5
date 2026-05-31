@@ -2,8 +2,12 @@ package edu.touro.mcon364.finalreview.orderflowhandoff.exercises;
 
 import edu.touro.mcon364.finalreview.model.LogLevel;
 import edu.touro.mcon364.finalreview.model.LogMessage;
+import java.util.*;
+import java.util.concurrent.*;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * LogProcessor.
@@ -31,11 +35,16 @@ import java.util.Map;
  * - stop() tells the processor to stop accepting/expecting more work and waits
  *   until the already-submitted work has been handled.
  * - getTotalProcessed() returns how many log messages have been processed.
+ *   concurrent hash map
  * - getCountsByLevel() returns how many processed messages there were for each
  *   LogLevel.
  * - getCountsByLevel() must not allow callers to mutate this class's internal
  *   state.
+ *   copy of
  * - The class must behave correctly when multiple threads interact with it.
+ *   producer consumer
+ *   blocking queue
+ *   worker pool
  *
  * Questions to think about before coding:
  * - Where should submitted messages wait before a worker processes them?
@@ -65,15 +74,34 @@ public class LogProcessor {
     /**
      * Accept one message for processing.
      */
+
+    private final List<LogMessage> processedLog = Collections.synchronizedList(new ArrayList<>());
+    private ExecutorService executor;
+    private boolean running;
+    private final BlockingQueue<LogMessage> queue = new LinkedBlockingQueue<>();
+    private final AtomicInteger totalProcessed = new AtomicInteger(0);
+    private final ConcurrentHashMap<LogLevel, AtomicInteger> countsByLevel = new ConcurrentHashMap<>();
+
     public void submit(LogMessage message) {
         // TODO: implement
+    if(!running){
+        throw new IllegalStateException("Processor not running");
+        }
+        queue.offer(message);
     }
+
 
     /**
      * Start the requested number of background workers.
      */
     public void start(int workerCount) {
         // TODO: implement
+        if(workerCount <= 0) throw new IllegalArgumentException();
+        running = true;
+        executor = Executors.newFixedThreadPool(workerCount);
+        for(int i = 0; i < workerCount; i++){
+            executor.submit(this::workerLoop);
+        }
     }
 
     /**
@@ -84,6 +112,19 @@ public class LogProcessor {
      */
     private void workerLoop() {
         // TODO: implement
+        try{
+            while(true){
+             LogMessage message = queue.take();
+             processedLog.add(message);
+             process(message);
+                if (!running && queue.isEmpty()) {
+                    break;
+                }
+            }
+        } catch (InterruptedException e){
+            throw new RuntimeException(e);
+        }
+
     }
 
     /**
@@ -91,6 +132,8 @@ public class LogProcessor {
      */
     private void process(LogMessage message) {
         // TODO: implement
+       totalProcessed.incrementAndGet();
+       countsByLevel.computeIfAbsent(message.level(), level -> new AtomicInteger(0)).incrementAndGet();
     }
 
     /**
@@ -98,6 +141,11 @@ public class LogProcessor {
      */
     public void stop() throws InterruptedException {
         // TODO: implement
+        if (executor != null) {
+            executor.shutdown();
+            executor.awaitTermination(5, TimeUnit.SECONDS);
+        }
+
     }
 
     /**
@@ -105,7 +153,7 @@ public class LogProcessor {
      */
     public int getTotalProcessed() {
         // TODO: implement
-        return 0;
+        return totalProcessed.get();
     }
 
     /**
@@ -113,6 +161,6 @@ public class LogProcessor {
      */
     public Map<LogLevel, Integer> getCountsByLevel() {
         // TODO: implement
-        return Map.of();
+        return countsByLevel.entrySet().stream().collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, e -> e.getValue().get()));
     }
 }
