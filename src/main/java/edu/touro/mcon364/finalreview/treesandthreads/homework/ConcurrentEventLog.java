@@ -56,6 +56,8 @@ public class ConcurrentEventLog {
      */
     public void logEvent(long timestamp, String message) {
         // TODO
+        long key = timestamp * 1_000_000L + sequence.getAndIncrement();
+        log.put(key, message);
     }
 
     /**
@@ -71,15 +73,27 @@ public class ConcurrentEventLog {
     public void runConcurrentSources(List<String> sources, int eventsEach)
             throws InterruptedException {
         // TODO
+        ExecutorService pool = Executors.newFixedThreadPool(sources.size());
+       for(int i = 0; i < sources.size(); i++) {
+           pool.submit(() -> {
+               for (int j = 0; j < eventsEach; j++) {
+                   long time = System.currentTimeMillis();
+                   logEvent(time, sources+"-"+j);
+               }
+           });
+       }
+        pool.shutdown();
+        pool.awaitTermination(10, TimeUnit.SECONDS);
     }
 
-    /**
+    /**a
      * Returns all events logged strictly after the given timestamp, in order.
      *
      */
     public List<String> getEventsAfter(long timestamp) {
         // TODO
-        return List.of();
+        long afterKey = timestamp * 1_000_000L;
+        return log.tailMap(afterKey, false).values().stream().collect(Collectors.toList());
     }
 
     /**
@@ -87,7 +101,12 @@ public class ConcurrentEventLog {
      */
     public List<String> getEventsBetween(long from, long to) {
         // TODO
-        return List.of();
+        long fromKey = from * 1_000_000L;
+        long toKey   = (to + 1) * 1_000_000L - 1;
+        if (fromKey > toKey) {
+            return List.of();  // empty list, no events possible
+        }
+        return log.subMap(fromKey, true, toKey, true).values().stream().toList();
     }
 
     /**
@@ -95,12 +114,12 @@ public class ConcurrentEventLog {
      */
     public List<String> getMostRecentN(int n) {
         // TODO
-        return List.of();
+        return log.descendingMap().values().stream().limit(n).toList();
     }
 
     /** Returns the total number of logged events. */
     public int size() {
-        return log.size();
+        return sequence.intValue();
     }
 }
 
